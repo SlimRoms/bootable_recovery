@@ -1,7 +1,11 @@
 #!/bin/bash
 #
-# A test suite for recovery's package signature verifier.  Run in a
-# client where you have done envsetup, lunch, etc.
+# A test suite for applypatch.  Run in a client where you have done
+# envsetup, choosecombo, etc.
+#
+# DO NOT RUN THIS ON A DEVICE YOU CARE ABOUT.  It will mess up your
+# system partition.
+#
 #
 # TODO: find some way to get this run regularly along with the rest of
 # the tests.

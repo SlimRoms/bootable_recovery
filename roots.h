@@ -19,10 +19,6 @@
 
 #include "common.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Load and parse volume data from /etc/recovery.fstab.
 void load_volume_table();
 
@@ -32,6 +28,7 @@ Volume* volume_for_path(const char* path);
 // Make sure that the volume 'path' is on is mounted.  Returns 0 on
 // success (volume is mounted).
 int ensure_path_mounted(const char* path);
+int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point);
 
 // Make sure that the volume 'path' is on is mounted.  Returns 0 on
 // success (volume is unmounted);
@@ -42,8 +39,12 @@ int ensure_path_unmounted(const char* path);
 // it is mounted.
 int format_volume(const char* volume);
 
-#ifdef __cplusplus
-}
-#endif
+int get_num_volumes();
+
+Volume* get_device_volumes();
+
+int is_data_media();
+void setup_data_media();
+int is_data_media_volume_path(const char* path);
 
 #endif  // RECOVERY_ROOTS_H_
