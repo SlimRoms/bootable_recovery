@@ -1280,12 +1280,10 @@ void show_advanced_menu()
             case 1:
                 if (0 != ensure_path_mounted("/data"))
                     break;
-               // ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection( "Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
-                   // __system("rm -r /sd-ext/dalvik-cache");
                     ui_print("Dalvik Cache wiped.\n");
                 }
                 ensure_path_unmounted("/data");
@@ -1373,7 +1371,6 @@ void create_fstab()
     write_fstab_root("/emmc", file);
     write_fstab_root("/system", file);
     write_fstab_root("/sdcard", file);
-    //write_fstab_root("/sd-ext", file);
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }

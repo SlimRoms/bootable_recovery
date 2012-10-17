@@ -40,3 +40,12 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 endif
+
+include $(CLEAR_VARS)
+LOCAL_STATIC_LIBRARIES := libz
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := libminizip
+LOCAL_CFLAGS := -Dmain=minizip_main -D__ANDROID__ -DIOAPI_NO_64
+LOCAL_C_INCLUDES := external/zlib
+LOCAL_SRC_FILES := ../../../external/zlib/contrib/minizip/minizip.c ../../../external/zlib/contrib/minizip/zip.c ../../../external/zlib/contrib/minizip/ioapi.c
+include $(BUILD_STATIC_LIBRARY)

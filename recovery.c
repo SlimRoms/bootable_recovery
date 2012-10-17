@@ -41,6 +41,9 @@
 #include "roots.h"
 #include "recovery_ui.h"
 
+#include "adb_install.h"
+#include "minadbd/adb.h"
+
 #include "extendedcommands.h"
 #include "flashutils/flashutils.h"
 #include "dedupe/dedupe.h"
@@ -731,6 +734,10 @@ prompt_and_wait() {
                 show_install_update_menu();
                 break;
 
+            case ITEM_APPLY_SIDELOAD:
+                apply_from_adb();
+                break;
+
             case ITEM_NANDROID:
                 show_nandroid_menu();
                 break;
@@ -758,7 +765,6 @@ static void
 print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
-
 // open recovery script code
 static const char *SCRIPT_FILE_CACHE = "/cache/recovery/openrecoveryscript";
 static const char *SCRIPT_FILE_TMP = "/tmp/openrecoveryscript";
@@ -1015,8 +1021,20 @@ int run_script_file(void) {
 
 int
 main(int argc, char **argv) {
+
+    if (argc == 2 && strcmp(argv[1], "adbd") == 0) {
+        adb_main();
+        return 0;
+    }
+
+    // Recovery needs to install world-readable files, so clear umask
+    // set by init
+    umask(0);
+
     if (strcmp(basename(argv[0]), "recovery") != 0)
     {
+        if (strstr(argv[0], "minizip") != NULL)
+            return minizip_main(argc, argv);
         if (strstr(argv[0], "dedupe") != NULL)
             return dedupe_main(argc, argv);
         if (strstr(argv[0], "flash_image") != NULL)
@@ -1055,10 +1073,6 @@ main(int argc, char **argv) {
 
     int is_user_initiated_recovery = 0;
     time_t start = time(NULL);
-
-    // Recovery needs to install world-readable files, so clear umask
-    // set by init
-    umask(0);
 
     // If these fail, there's not really anywhere to complain...
     freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
