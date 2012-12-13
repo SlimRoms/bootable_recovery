@@ -80,8 +80,17 @@ void write_string_to_file(const char* filename, const char* string) {
     sprintf(tmp, "mkdir -p $(dirname %s)", filename);
     __system(tmp);
     FILE *file = fopen(filename, "w");
-    fprintf(file, "%s", string);
-    fclose(file);
+    if( file != NULL) {
+        fprintf(file, "%s", string);
+        fclose(file);
+    }
+}
+
+void write_recovery_version() {
+    if ( is_data_media() ) {
+        write_string_to_file("/sdcard/0/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
+    }
+    write_string_to_file("/sdcard/clockworkmod/.recovery_version",EXPAND(RECOVERY_VERSION) "\n" EXPAND(TARGET_DEVICE));
 }
 
 void
@@ -153,6 +162,7 @@ void show_install_update_menu()
             }
             case ITEM_CHOOSE_ZIP:
                 show_choose_zip_menu("/sdcard/");
+                write_recovery_version();
                 break;
             case ITEM_CHOOSE_ZIP_INT:
                 if (other_sd != NULL)
@@ -225,7 +235,7 @@ char** gather_files(const char* directory, const char* fileExtensionOrDirectory,
                 char fullFileName[PATH_MAX];
                 strcpy(fullFileName, directory);
                 strcat(fullFileName, de->d_name);
-                stat(fullFileName, &info);
+                lstat(fullFileName, &info);
                 // make sure it is a directory
                 if (!(S_ISDIR(info.st_mode)))
                     continue;
@@ -492,6 +502,9 @@ int control_usb_storage_for_lun(Volume* vol, bool enable) {
 #ifdef BOARD_UMS_LUNFILE
         BOARD_UMS_LUNFILE,
 #endif
+#ifdef TARGET_USE_CUSTOM_LUN_FILE_PATH
+        TARGET_USE_CUSTOM_LUN_FILE_PATH,
+#endif
         "/sys/devices/platform/usb_mass_storage/lun%d/file",
         "/sys/class/android_usb/android0/f_mass_storage/lun/file",
         "/sys/class/android_usb/android0/f_mass_storage/lun_ex/file",
@@ -568,7 +581,7 @@ void show_mount_usb_storage_menu()
         return;
 
     static char* headers[] = {  "USB Mass Storage device",
-                                "Leaving this menu unmount",
+                                "Leaving this menu unmounts",
                                 "your SD card from your PC.",
                                 "",
                                 NULL
@@ -962,7 +975,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                                 "",
                                 "Choose an image to restore",
                                 "first. The next menu will",
-                                "you more options.",
+                                "show you more options.",
                                 "",
                                 NULL
     };
@@ -1133,16 +1146,20 @@ void show_nandroid_menu()
                         strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
                     }
                     nandroid_backup(backup_path);
+                    write_recovery_version();
                 }
                 break;
             case 1:
                 show_nandroid_restore_menu("/sdcard");
+                write_recovery_version();
                 break;
             case 2:
                 show_nandroid_delete_menu("/sdcard");
+                write_recovery_version();
                 break;
             case 3:
                 show_nandroid_advanced_restore_menu("/sdcard");
+                write_recovery_version();
                 break;
             case 4:
                 run_dedupe_gc(other_sd);
@@ -1317,10 +1334,12 @@ void show_advanced_menu()
             case 1:
                 if (0 != ensure_path_mounted("/data"))
                     break;
+                ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection( "Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
+                    __system("rm -r /sd-ext/dalvik-cache");
                     ui_print("Dalvik Cache wiped.\n");
                 }
                 ensure_path_unmounted("/data");
@@ -1404,6 +1423,8 @@ void create_fstab()
     write_fstab_root("/emmc", file);
     write_fstab_root("/system", file);
     write_fstab_root("/sdcard", file);
+    write_fstab_root("/sd-ext", file);
+    write_fstab_root("/external_sd", file);
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }
