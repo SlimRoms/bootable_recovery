@@ -455,15 +455,15 @@ fp_end()
    if $TEST $SYSSDMOUNT -eq 1; then
       $UMOUNT $SD_EXT_DIRECTORY > /dev/null 2>&1
    fi
-   
+
    if $TEST $SYSMOUNT -eq 1; then
       $UMOUNT /system > /dev/null 2>&1
    fi
-   
+
    if $TEST $DATAMOUNT -eq 1; then
       $UMOUNT /data > /dev/null 2>&1
    fi
-   
+
    FP_ENDTIME=$( $DATE +"%m-%d-%Y %H:%M:%S" )
    FP_ENDEPOCH=$( $DATE +%s )
 

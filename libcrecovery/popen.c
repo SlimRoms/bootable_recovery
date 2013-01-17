@@ -1,4 +1,4 @@
-/* OpenBSD: popen.c,v 1.17 2005/08/08 08:05:34 espie Exp $ */
+/* $OpenBSD: popen.c,v 1.17 2005/08/08 08:05:34 espie Exp $ */
 /*
  * Copyright (c) 1988, 1993
  * The Regents of the University of California.  All rights reserved.

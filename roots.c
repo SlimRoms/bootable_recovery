@@ -418,5 +418,5 @@ int format_volume(const char* volume) {
 }
 
 void handle_data_media_format(int handle) {
-  handle_data_media = handle;
+    handle_data_media = handle;
 }

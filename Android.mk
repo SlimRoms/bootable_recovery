@@ -33,11 +33,11 @@ RECOVERY_NAME := ClockworkMod Recovery
 LOCAL_CFLAGS += -DI_AM_KOUSH
 else
 ifndef RECOVERY_NAME
-RECOVERY_NAME := CWM-based Recovery
+RECOVERY_NAME := CWMR Touch
 endif
 endif
 
-RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.2.5
+RECOVERY_VERSION := $(RECOVERY_NAME) v6.0.2.7
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
@@ -82,7 +82,7 @@ LOCAL_MODULE_TAGS := eng
 ifeq ($(BOARD_CUSTOM_RECOVERY_KEYMAPPING),)
   LOCAL_SRC_FILES += default_recovery_keys.c
 else
-  LOCAL_SRC_FILES += $(BOARD_CUSTOM_RECOVERY_KEYMAPPING)
+  LOCAL_SRC_FILES += default_recovery_keys.c
 endif
 
 LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static

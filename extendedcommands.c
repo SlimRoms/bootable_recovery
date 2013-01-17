@@ -604,24 +604,14 @@ int confirm_selection(const char* title, const char* confirm)
                         NULL };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
         return chosen_item == 1;
-    }
-    else {
+    } else {
         char* items[] = { "No",
-                        "No",
-                        "No",
-                        "No",
-                        "No",
-                        "No",
-                        "No",
-                        confirm, //" Yes -- wipe partition",   // [7]
-                        "No",
-                        "No",
-                        "No",
+                        confirm, //" Yes -- wipe partition",   // [1]
                         NULL };
         int chosen_item = get_menu_selection(confirm_headers, items, 0, 0);
-        return chosen_item == 7;
+        return chosen_item == 1;
     }
-    }
+}
 
 #define MKE2FS_BIN      "/sbin/mke2fs"
 #define TUNE2FS_BIN     "/sbin/tune2fs"
@@ -901,8 +891,8 @@ void show_partition_menu()
           options[mountable_volumes + formatable_volumes + 1] = NULL;
         }
         else {
-          options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
-          options[mountable_volumes + formatable_volumes + 1] = NULL;
+            options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
+            options[mountable_volumes + formatable_volumes + 1] = NULL;
         }
 
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
@@ -914,7 +904,7 @@ void show_partition_menu()
             }
             else {
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
-                    continue;
+                        continue;
                 handle_data_media_format(1);
                 ui_print("Formatting /data...\n");
                 if (0 != format_volume("/data"))
@@ -1104,14 +1094,14 @@ void show_nandroid_menu()
 
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
-        other_sd = "/emmc";
+        other_sd = "/emmc/";
         list[6] = "backup to internal sdcard";
         list[7] = "restore from internal sdcard";
         list[8] = "advanced restore from internal sdcard";
         list[9] = "delete from internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
-        other_sd = "/external_sd";
+        other_sd = "/external_sd/";
         list[6] = "backup to external sdcard";
         list[7] = "restore from external sdcard";
         list[8] = "advanced restore from external sdcard";
@@ -1327,12 +1317,10 @@ void show_advanced_menu()
             case 1:
                 if (0 != ensure_path_mounted("/data"))
                     break;
-                ensure_path_mounted("/sd-ext");
                 ensure_path_mounted("/cache");
                 if (confirm_selection( "Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
-                    __system("rm -r /sd-ext/dalvik-cache");
                     ui_print("Dalvik Cache wiped.\n");
                 }
                 ensure_path_unmounted("/data");
@@ -1416,7 +1404,6 @@ void create_fstab()
     write_fstab_root("/emmc", file);
     write_fstab_root("/system", file);
     write_fstab_root("/sdcard", file);
-    write_fstab_root("/sd-ext", file);
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }

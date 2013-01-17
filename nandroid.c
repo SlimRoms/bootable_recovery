@@ -206,8 +206,10 @@ static void refresh_default_backup_handler() {
     else {
         ensure_path_mounted("/sdcard");
         FILE* f = fopen(NANDROID_BACKUP_FORMAT_FILE, "r");
-        if (NULL == f)
+        if (NULL == f) {
+            default_backup_handler = tar_compress_wrapper;
             return;
+        }
         fread(fmt, 1, sizeof(fmt), f);
         fclose(f);
     }
@@ -292,7 +294,6 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         ui_print("Error while making a backup image of %s!\n", mount_point);
         return ret;
     }
-    ui_print("Backup of %s completed.\n", name);
     return 0;
 }
 
@@ -300,7 +301,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     Volume *vol = volume_for_path(root);
     // make sure the volume exists before attempting anything...
     if (vol == NULL || vol->fs_type == NULL)
-        return 0;
+        return NULL;
 
     // see if we need a raw backup (mtd)
     char tmp[PATH_MAX];
@@ -315,7 +316,6 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
             ui_print("Error while backing up %s image!", name);
             return ret;
         }
-        ui_print("Backup of %s image completed.\n", name);
         return 0;
     }
 
@@ -383,12 +383,10 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
 
-    if (0 != stat("/sdcard/.android_secure", &s))
-    {
+    if (is_data_media() || 0 != stat("/sdcard/.android_secure", &s)) {
         ui_print("No /sdcard/.android_secure found. Skipping backup of applications on external storage.\n");
     }
-    else
-    {
+    else {
         if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
             return ret;
     }
@@ -419,7 +417,7 @@ int nandroid_backup(const char* backup_path)
     sprintf(tmp, "chmod -R 777 %s ; chmod -R u+r,u+w,g+r,g+w,o+r,o+w /sdcard/clockworkmod ; chmod u+x,g+x,o+x /sdcard/clockworkmod/backup ; chmod u+x,g+x,o+x /sdcard/clockworkmod/blobs", backup_path);
     __system(tmp);
     sync();
-    ui_set_background(BACKGROUND_ICON_NONE);
+    ui_set_background(BACKGROUND_ICON_CLOCKWORK);
     ui_reset_progress();
     ui_print("\nBackup complete!\n");
     return 0;
@@ -727,7 +725,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return ret;
 
     sync();
-    ui_set_background(BACKGROUND_ICON_NONE);
+    ui_set_background(BACKGROUND_ICON_CLOCKWORK);
     ui_reset_progress();
     ui_print("\nRestore complete!\n");
     return 0;
