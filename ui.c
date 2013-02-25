@@ -95,7 +95,7 @@ static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
-    { &gVirtualKeys,                    "virtual_keys" },
+    { &gVirtualKeys,                    "virtual_keys_480" },
     { &gBackground,                "stitch" },
     { NULL,                             NULL },
 };
@@ -239,7 +239,7 @@ static void draw_progress_locked()
 
 // Draw the virtual keys on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
-/*
+
 static void draw_virtualkeys_locked()
 {
     gr_surface surface = gVirtualKeys;
@@ -249,7 +249,7 @@ static void draw_virtualkeys_locked()
     int iconY = (gr_fb_height() - iconHeight);
     gr_blit(surface, 0, 0, iconWidth, iconHeight, iconX, iconY);
 }
-*/
+
 
 #define LEFT_ALIGN 0
 #define CENTER_ALIGN 1
@@ -367,7 +367,7 @@ static void draw_screen_locked(void)
             draw_text_line(start_row + r, text[(cur_row + r) % MAX_ROWS], LEFT_ALIGN);
         }
     }
-    //draw_virtualkeys_locked(); //added to draw the virtual keys
+    draw_virtualkeys_locked(); //added to draw the virtual keys
 }
 
 // Redraw everything on the screen and flip the screen (make it visible).
@@ -478,8 +478,9 @@ static int input_callback(int fd, short revents, void *data)
         return -1;
 
 #ifdef BOARD_TOUCH_RECOVERY
-    if (touch_handle_input(fd, ev))
-      return 0;
+    if (touch_handle_input(fd, ev)) {
+        return 0;
+    }
 #endif
 
     if (ev.type == EV_SYN) {
@@ -508,13 +509,13 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
-    printf("ev.type: %x, ev.code: %x, ev.value: %i\n", ev.type, ev.code, ev.value);
+    printf("ev.type: %i, ev.code: %i, ev.value: %i\n", ev.type, ev.code, ev.value);
     if (ev.type == 3 && ev.code == 48 && ev.value != 0) {
         if (in_touch == 0) {
             in_touch = 1; //starting to track touch...
-            reset_gestures();
+            //reset_gestures();
         }
-    } else if (ev.type == 3 && ev.code == 48 && ev.value == 0) {
+    } else if (ev.type == 3 && ev.code == 57 && ev.value == -1) {
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
             int keywidth = gr_get_width(surface) / 4;
@@ -523,7 +524,7 @@ static int input_callback(int fd, short revents, void *data)
                 //they lifted in the touch panel region
                 if (touch_x < (keywidth + keyoffset)) {
                     //down button
-                    ev.code = KEY_DOWN;
+                    ev.code = KEY_BACK;
                     reset_gestures();
                 } else if (touch_x < ((keywidth * 2) + keyoffset)) {
                     //up button
@@ -531,7 +532,7 @@ static int input_callback(int fd, short revents, void *data)
                     reset_gestures();
                 } else if (touch_x < ((keywidth * 3) + keyoffset)) {
                     //back button
-                    ev.code = KEY_BACK;
+                    ev.code = KEY_DOWN;
                     reset_gestures();
                 } else {
                     //enter key
@@ -554,14 +555,14 @@ static int input_callback(int fd, short revents, void *data)
     } else if (ev.type == 3 && ev.code == 53) {
         old_x = touch_x;
         touch_x = ev.value;
-        if (old_x != 0)
+        if (old_x != 0) {
             diff_x += touch_x - old_x;
-
-     if(touch_y < (gr_fb_height() - gr_get_height(surface))) {
+        }
+        if(touch_y < (gr_fb_height() - gr_get_height(surface))) {
             if(diff_x > (gr_fb_width() / 4)) {
                 slide_right = 1;
                 reset_gestures();
-        } else if(diff_x < ((gr_fb_width() / 4) * -1)) {
+            } else if(diff_x < ((gr_fb_width() / 4) * -1)) {
                 slide_left = 1;
                 reset_gestures();
             }
@@ -572,15 +573,15 @@ static int input_callback(int fd, short revents, void *data)
     } else if (ev.type == 3 && ev.code == 54) {
         old_y = touch_y;
         touch_y = ev.value;
-        if (old_y != 0)
+        if (old_y != 0) {
             diff_y += touch_y - old_y;
-
-   if(touch_y < (gr_fb_height() - gr_get_height(surface))) {
+        }
+        if(touch_y < (gr_fb_height() - gr_get_height(surface))) {
             if (diff_y > 25) {
                 ev.code = KEY_DOWN;
                 ev.type = EV_KEY;
                 reset_gestures();
-     } else if (diff_y < -25) {
+            } else if (diff_y < -25) {
                 ev.code = KEY_UP;
                 ev.type = EV_KEY;
                 reset_gestures();
