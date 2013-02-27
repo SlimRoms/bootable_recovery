@@ -509,7 +509,7 @@ static int input_callback(int fd, short revents, void *data)
     } else {
         rel_sum = 0;
     }
-    printf("ev.type: %i, ev.code: %i, ev.value: %i\n", ev.type, ev.code, ev.value);
+    //printf("ev.type: %i, ev.code: %i, ev.value: %i\n", ev.type, ev.code, ev.value);
     if (ev.type == 3 && ev.code == 48 && ev.value != 0) {
         if (in_touch == 0) {
             in_touch = 1; //starting to track touch...
