@@ -129,7 +129,7 @@ void show_install_update_menu()
                                 "",
                                 NULL
     };
-
+    
     char* install_menu_items[] = {  "choose zip from sdcard",
                                     "apply /sdcard/update.zip",
                                     "toggle signature verification",
@@ -145,7 +145,7 @@ void show_install_update_menu()
         other_sd = "/external_sd/";
         install_menu_items[3] = "choose zip from external sdcard";
     }
-
+    
     for (;;)
     {
         int chosen_item = get_menu_selection(headers, install_menu_items, 0, 0);
@@ -525,11 +525,11 @@ int control_usb_storage_for_lun(Volume* vol, bool enable) {
         const char *lun_file = lun_files[i];
         for(lun_num = 0; lun_num < LUN_FILE_EXPANDS; lun_num++) {
             char formatted_lun_file[255];
-
+    
             // Replace %d with the LUN number
             bzero(formatted_lun_file, 255);
             snprintf(formatted_lun_file, 254, lun_file, lun_num);
-
+    
             // Attempt to use the LUN file
             if (control_usb_storage_set_lun(vol, enable, formatted_lun_file) == 0) {
                 return 0;
@@ -610,7 +610,7 @@ int confirm_selection(const char* title, const char* confirm)
     int one_confirm = 0 == stat("/sdcard/clockworkmod/.one_confirm", &info);
 #ifdef BOARD_TOUCH_RECOVERY
     one_confirm = 1;
-#endif
+#endif 
     if (one_confirm) {
         char* items[] = { "No",
                         confirm, //" Yes -- wipe partition",   // [1]
@@ -663,7 +663,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
         }
         return 0;
     }
-
+ 
     if (strcmp(v->mount_point, path) != 0) {
         return format_unknown_device(v->device, path, NULL);
     }
@@ -904,8 +904,8 @@ void show_partition_menu()
           options[mountable_volumes + formatable_volumes + 1] = NULL;
         }
         else {
-            options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
-            options[mountable_volumes + formatable_volumes + 1] = NULL;
+          options[mountable_volumes + formatable_volumes] = "format /data and /data/media (/sdcard)";
+          options[mountable_volumes + formatable_volumes + 1] = NULL;
         }
 
         int chosen_item = get_menu_selection(headers, &options, 0, 0);
@@ -917,14 +917,14 @@ void show_partition_menu()
             }
             else {
                 if (!confirm_selection("format /data and /data/media (/sdcard)", confirm))
-                        continue;
+                    continue;
                 handle_data_media_format(1);
                 ui_print("Formatting /data...\n");
                 if (0 != format_volume("/data"))
                     ui_print("Error formatting /data!\n");
                 else
                     ui_print("Done.\n");
-                handle_data_media_format(0);
+                handle_data_media_format(0);  
             }
         }
         else if (chosen_item < mountable_volumes) {
@@ -999,7 +999,7 @@ void show_nandroid_advanced_restore_menu(const char* path)
                             "Restore wimax",
                             NULL
     };
-
+    
     if (0 != get_partition_device("wimax", tmp)) {
         // disable wimax restore option
         list[5] = NULL;
@@ -1107,14 +1107,14 @@ void show_nandroid_menu()
 
     char *other_sd = NULL;
     if (volume_for_path("/emmc") != NULL) {
-        other_sd = "/emmc/";
+        other_sd = "/emmc";
         list[6] = "backup to internal sdcard";
         list[7] = "restore from internal sdcard";
         list[8] = "advanced restore from internal sdcard";
         list[9] = "delete from internal sdcard";
     }
     else if (volume_for_path("/external_sd") != NULL) {
-        other_sd = "/external_sd/";
+        other_sd = "/external_sd";
         list[6] = "backup to external sdcard";
         list[7] = "restore from external sdcard";
         list[8] = "advanced restore from external sdcard";
@@ -1283,7 +1283,7 @@ int can_partition(const char* volume) {
         LOGI("Can't partition unsafe device: %s\n", vol->device);
         return 0;
     }
-
+    
     if (strcmp(vol->fs_type, "vfat") != 0) {
         LOGI("Can't partition non-vfat: %s\n", vol->fs_type);
         return 0;
@@ -1436,13 +1436,13 @@ int bml_check_volume(const char *path) {
         ensure_path_unmounted(path);
         return 0;
     }
-
+    
     Volume *vol = volume_for_path(path);
     if (vol == NULL) {
         LOGE("Unable process volume! Skipping...\n");
         return 0;
     }
-
+    
     ui_print("%s may be rfs. Checking...\n", path);
     char tmp[PATH_MAX];
     sprintf(tmp, "mount -t rfs %s %s", vol->device, path);
@@ -1471,12 +1471,12 @@ void process_volumes() {
     if (has_datadata())
         ret |= bml_check_volume("/datadata");
     ret |= bml_check_volume("/cache");
-
+    
     if (ret == 0) {
         ui_print("Done!\n");
         return;
     }
-
+    
     char backup_path[PATH_MAX];
     time_t t = time(NULL);
     char backup_name[PATH_MAX];

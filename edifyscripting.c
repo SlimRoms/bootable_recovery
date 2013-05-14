@@ -135,18 +135,18 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (argc != 1) {
         return ErrorAbort(state, "%s() expects 1 arg, got %d", name, argc);
     }
-
+    
     char *path;
     if (ReadArgs(state, argv, 1, &path) < 0) {
         return NULL;
     }
-
+    
     ui_print("Formatting %s...\n", path);
     if (0 != format_volume(path)) {
         free(path);
         return StringValue(strdup(""));
     }
-
+    
     if (strcmp(path, "/data") == 0 && has_datadata()) {
         ui_print("Formatting /datadata...\n", path);
         if (0 != format_volume("/datadata")) {
@@ -172,10 +172,10 @@ Value* BackupFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (ReadArgs(state, argv, 1, &path) < 0) {
         return NULL;
     }
-
+    
     if (0 != nandroid_backup(path))
         return StringValue(strdup(""));
-
+    
     return StringValue(strdup(path));
 }
 
@@ -191,7 +191,7 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
     char** args2 = malloc(sizeof(char*) * (argc+1));
     memcpy(args2, args, sizeof(char*) * argc);
     args2[argc] = NULL;
-
+    
     char* path = strdup(args2[0]);
     int restoreboot = 1;
     int restoresystem = 1;
@@ -214,7 +214,7 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
         else if (strcmp(args2[i], "nosd-ext") == 0)
             restoresdext = 0;
     }
-
+    
     for (i = 0; i < argc; ++i) {
         free(args[i]);
     }
@@ -225,7 +225,7 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
         free(path);
         return StringValue(strdup(""));
     }
-
+    
     return StringValue(path);
 }
 
@@ -238,10 +238,10 @@ Value* InstallZipFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (ReadArgs(state, argv, 1, &path) < 0) {
         return NULL;
     }
-
+    
     if (0 != install_zip(path))
         return StringValue(strdup(""));
-
+    
     return StringValue(strdup(path));
 }
 
@@ -254,7 +254,7 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (ReadArgs(state, argv, 1, &path) < 0) {
         return NULL;
     }
-
+    
     if (0 != ensure_path_mounted(path))
         return StringValue(strdup(""));
 

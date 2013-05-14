@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: %s <partition>\n", argv[0]);
         return 2;
     }
-
+    
     return erase_image(argv[1]);
 }
 
