@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
+#include <fs_mgr.h>
 #include "mtdutils/mtdutils.h"
 #include "mounts.h"
 #include "roots.h"
@@ -30,6 +31,8 @@
 
 #include "flashutils/flashutils.h"
 #include "extendedcommands.h"
+
+static struct fstab *fstab = NULL;
 
 int num_volumes;
 Volume* device_volumes;
@@ -96,9 +99,9 @@ void load_volume_table() {
     device_volumes[0].length = 0;
     num_volumes = 1;
 
-    FILE* fstab = fopen("/etc/recovery.fstab", "r");
-    if (fstab == NULL) {
-        LOGE("failed to open /etc/recovery.fstab (%s)\n", strerror(errno));
+    fstab = fs_mgr_read_fstab("/etc/recovery.fstab");
+    if (!fstab) {
+        LOGE("failed to read /etc/recovery.fstab\n");
         return;
     }
 
@@ -168,16 +171,7 @@ void load_volume_table() {
 }
 
 Volume* volume_for_path(const char* path) {
-    int i;
-    for (i = 0; i < num_volumes; ++i) {
-        Volume* v = device_volumes+i;
-        int len = strlen(v->mount_point);
-        if (strncmp(path, v->mount_point, len) == 0 &&
-            (path[len] == '\0' || path[len] == '/')) {
-            return v;
-        }
-    }
-    return NULL;
+    return fs_mgr_get_entry_for_mount_point(fstab, path);
 }
 
 int try_mount(const char* device, const char* mount_point, const char* fs_type, const char* fs_options) {
@@ -275,10 +269,10 @@ int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point
         // mount an MTD partition as a YAFFS2 filesystem.
         mtd_scan_partitions();
         const MtdPartition* partition;
-        partition = mtd_find_partition_by_name(v->device);
+        partition = mtd_find_partition_by_name(v->blk_device);
         if (partition == NULL) {
             LOGE("failed to find \"%s\" partition to mount at \"%s\"\n",
-                 v->device, mount_point);
+                 v->blk_device, v->mount_point);
             return -1;
         }
         return mtd_mount_partition(partition, mount_point, v->fs_type, 0);
@@ -382,31 +376,31 @@ int format_volume(const char* volume) {
 
     if (strcmp(v->fs_type, "yaffs2") == 0 || strcmp(v->fs_type, "mtd") == 0) {
         mtd_scan_partitions();
-        const MtdPartition* partition = mtd_find_partition_by_name(v->device);
+        const MtdPartition* partition = mtd_find_partition_by_name(v->blk_device);
         if (partition == NULL) {
-            LOGE("format_volume: no MTD partition \"%s\"\n", v->device);
+            LOGE("format_volume: no MTD partition \"%s\"\n", v->blk_device);
             return -1;
         }
 
         MtdWriteContext *write = mtd_write_partition(partition);
         if (write == NULL) {
-            LOGW("format_volume: can't open MTD \"%s\"\n", v->device);
+            LOGW("format_volume: can't open MTD \"%s\"\n", v->blk_device);
             return -1;
         } else if (mtd_erase_blocks(write, -1) == (off_t) -1) {
-            LOGW("format_volume: can't erase MTD \"%s\"\n", v->device);
+            LOGW("format_volume: can't erase MTD \"%s\"\n", v->blk_device);
             mtd_write_close(write);
             return -1;
         } else if (mtd_write_close(write)) {
-            LOGW("format_volume: can't close MTD \"%s\"\n", v->device);
+            LOGW("format_volume: can't close MTD \"%s\"\n", v->blk_device);
             return -1;
         }
         return 0;
     }
 
     if (strcmp(v->fs_type, "ext4") == 0) {
-        int result = make_ext4fs(v->device, v->length, volume, sehandle);
+        int result = make_ext4fs(v->blk_device, v->length, volume, sehandle);
         if (result != 0) {
-            LOGE("format_volume: make_extf4fs failed on %s\n", v->device);
+            LOGE("format_volume: make_extf4fs failed on %s\n", v->blk_device);
             return -1;
         }
         return 0;

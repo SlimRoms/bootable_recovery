@@ -18,6 +18,7 @@
 #define RECOVERY_COMMON_H
 
 #include <stdio.h>
+#include <stdarg.h>
 
 // Initialize the graphics system.
 void ui_init();
@@ -161,5 +162,10 @@ FILE* fopen_path(const char *path, const char *mode);
 
 int ui_get_selected_item();
 int ui_is_showing_back_button();
+void ui_print(const char* format, ...);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // RECOVERY_COMMON_H
