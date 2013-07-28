@@ -53,6 +53,7 @@ struct selabel_handle *sehandle = NULL;
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
+  { "headless", no_argument, NULL, 'h' },
   { "wipe_data", no_argument, NULL, 'w' },
   { "wipe_cache", no_argument, NULL, 'c' },
   { "show_text", no_argument, NULL, 't' },
@@ -69,7 +70,6 @@ static const char *SDCARD_ROOT = "/sdcard";
 static int allow_display_toggle = 0;
 static int poweroff = 0;
 static const char *SDCARD_PACKAGE_FILE = "/sdcard/update.zip";
-static const char *FILEMANAGER = "/sdcard/.aroma/aromafm.zip";
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
@@ -441,19 +441,13 @@ prepend_title(char** headers) {
 int
 get_menu_selection(char** headers, char** items, int menu_only,
                    int initial_selection) {
-    //printf("getting a menu selection\n");
     // throw away keys pressed previously, so user doesn't
     // accidentally trigger menu items.
     ui_clear_key_queue();
-
+    
     int item_count = ui_start_menu(headers, items, initial_selection);
     int selected = initial_selection;
     int chosen_item = -1;
-
-    // Some users with dead enter keys need a way to turn on power to select.
-    // Jiggering across the wrapping menu is one "secret" way to enable it.
-    // We can't rely on /cache or /sdcard since they may not be available.
-    int wrap_count = 0;
 
     while (chosen_item < 0 && chosen_item != GO_BACK) {
         int key = ui_wait_key();
@@ -504,25 +498,6 @@ get_menu_selection(char** headers, char** items, int menu_only,
         } else if (!menu_only) {
             chosen_item = action;
         }
-
-#ifndef BOARD_HAS_NO_SELECT_BUTTON
-#ifndef BOARD_TOUCH_RECOVERY
-        if (abs(selected - old_selected) > 1) {
-            wrap_count++;
-            if (wrap_count == 300) {
-                wrap_count = 0;
-                if (ui_get_showing_back_button()) {
-                    ui_print("Back menu button disabled.\n");
-                    ui_set_showing_back_button(0);
-                }
-                else {
-                    ui_print("Back menu button enabled.\n");
-                    ui_set_showing_back_button(1);
-                }
-            }
-        }
-#endif
-#endif
     }
 
     ui_end_menu();
@@ -675,11 +650,20 @@ wipe_data(int confirm) {
         }
 
         char* items[] = { " No",
-                          " Yes -- delete all user data",   // [1]
+                          " No",
+                          " No",
+                          " No",
+                          " No",
+                          " No",
+                          " No",
+                          " Yes -- delete all user data",   // [7]
+                          " No",
+                          " No",
+                          " No",
                           NULL };
 
         int chosen_item = get_menu_selection(title_headers, items, 1, 0);
-        if (chosen_item != 1) {
+        if (chosen_item != 7) {
             return;
         }
     }
@@ -691,8 +675,18 @@ wipe_data(int confirm) {
     if (has_datadata()) {
         erase_volume("/datadata");
     }
+    erase_volume("/sd-ext");
     erase_volume("/sdcard/.android_secure");
     ui_print("Data wipe complete.\n");
+}
+
+static void headless_wait() {
+  ui_show_text(0);
+  char** headers = prepend_title((const char**)MENU_HEADERS);
+  for (;;) {
+    finish_recovery(NULL);
+    get_menu_selection(headers, MENU_ITEMS, 0, 0);
+  }
 }
 
 int ui_menu_level = 1;
@@ -704,7 +698,7 @@ prompt_and_wait() {
     for (;;) {
         finish_recovery(NULL);
         ui_reset_progress();
-
+        
         ui_root_menu = 1;
         // ui_menu_level is a legacy variable that i am keeping around to prevent build breakage.
         ui_menu_level = 0;
@@ -722,7 +716,7 @@ prompt_and_wait() {
         int status;
         switch (chosen_item) {
             case ITEM_REBOOT:
-                poweroff=0;
+                poweroff = 0;
                 return;
 
             case ITEM_WIPE_DATA:
@@ -740,12 +734,8 @@ prompt_and_wait() {
                 }
                 break;
 
-            case ITEM_APPLY_SDCARD:
+            case ITEM_APPLY_ZIP:
                 show_install_update_menu();
-                break;
-
-            case ITEM_APPLY_SIDELOAD:
-                apply_from_adb();
                 break;
 
             case ITEM_NANDROID:
@@ -759,14 +749,6 @@ prompt_and_wait() {
             case ITEM_ADVANCED:
                 show_advanced_menu();
                 break;
-
-       case ITEM_FILEMANAGER:
-                install_zip(FILEMANAGER);
-                break;
-
-            case ITEM_POWEROFF:
-                poweroff = 1;
-                return;
         }
     }
 }
@@ -775,259 +757,6 @@ static void
 print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
-// open recovery script code
-static const char *SCRIPT_FILE_CACHE = "/cache/recovery/openrecoveryscript";
-static const char *SCRIPT_FILE_TMP = "/tmp/openrecoveryscript";
-#define SCRIPT_COMMAND_SIZE 512
-
-int check_for_script_file(void) {
-    FILE *fp = fopen(SCRIPT_FILE_CACHE, "r");
-    int ret_val = 0;
-    char exec[512];
-
-    if (fp != NULL) {
-        ret_val = 1;
-        LOGI("Script file found: '%s'\n", SCRIPT_FILE_CACHE);
-        fclose(fp);
-        // Copy script file to /tmp
-        strcpy(exec, "cp ");
-        strcat(exec, SCRIPT_FILE_CACHE);
-        strcat(exec, " ");
-        strcat(exec, SCRIPT_FILE_TMP);
-        __system(exec);
-        // Delete the file from /cache
-        strcpy(exec, "rm ");
-        strcat(exec, SCRIPT_FILE_CACHE);
-        // __system(exec);
-    }
-    return ret_val;
-}
-
-int run_script_file(void) {
-    FILE *fp = fopen(SCRIPT_FILE_TMP, "r");
-    int ret_val = 0, cindex, line_len, i, remove_nl;
-    char script_line[SCRIPT_COMMAND_SIZE], command[SCRIPT_COMMAND_SIZE],
-         value[SCRIPT_COMMAND_SIZE], mount[SCRIPT_COMMAND_SIZE],
-         value1[SCRIPT_COMMAND_SIZE], value2[SCRIPT_COMMAND_SIZE];
-    char *val_start, *tok;
-    int ors_system = 0;
-    int ors_data = 0;
-    int ors_cache = 0;
-    int ors_recovery = 0;
-    int ors_boot = 0;
-    int ors_andsec = 0;
-    int ors_sdext = 0;
-
-    if (fp != NULL) {
-        while (fgets(script_line, SCRIPT_COMMAND_SIZE, fp) != NULL && ret_val == 0) {
-            cindex = 0;
-            line_len = strlen(script_line);
-            //if (line_len > 2)
-                //continue; // there's a blank line at the end of the file, we're done!
-            ui_print("script line: '%s'\n", script_line);
-            for (i=0; i<line_len; i++) {
-                if ((int)script_line[i] == 32) {
-                    cindex = i;
-                    i = line_len;
-                }
-            }
-            memset(command, 0, sizeof(command));
-            memset(value, 0, sizeof(value));
-            if ((int)script_line[line_len - 1] == 10)
-                    remove_nl = 2;
-                else
-                    remove_nl = 1;
-            if (cindex != 0) {
-                strncpy(command, script_line, cindex);
-                ui_print("command is: '%s' and ", command);
-                val_start = script_line;
-                val_start += cindex + 1;
-                strncpy(value, val_start, line_len - cindex - remove_nl);
-                ui_print("value is: '%s'\n", value);
-            } else {
-                strncpy(command, script_line, line_len - remove_nl + 1);
-                ui_print("command is: '%s' and there is no value\n", command);
-            }
-            if (strcmp(command, "install") == 0) {
-                // Install zip
-                ui_print("Installing zip file '%s'\n", value);
-                ret_val = install_zip(value);
-                if (ret_val != INSTALL_SUCCESS) {
-                    LOGE("Error installing zip file '%s'\n", value);
-                    ret_val = 1;
-                }
-            } else if (strcmp(command, "wipe") == 0) {
-                // Wipe
-                if (strcmp(value, "cache") == 0 || strcmp(value, "/cache") == 0) {
-                    ui_print("-- Wiping Cache Partition...\n");
-                    erase_volume("/cache");
-                    ui_print("-- Cache Partition Wipe Complete!\n");
-                } else if (strcmp(value, "dalvik") == 0 || strcmp(value, "dalvick") == 0 || strcmp(value, "dalvikcache") == 0 || strcmp(value, "dalvickcache") == 0) {
-                    ui_print("-- Wiping Dalvik Cache...\n");
-                    if (0 != ensure_path_mounted("/data")) {
-                        ret_val = 1;
-                        break;
-                    }
-                    ensure_path_mounted("/sd-ext");
-                    ensure_path_mounted("/cache");
-                    if (confirm_selection( "Confirm wipe?", "Yes - Wipe Dalvik Cache")) {
-                        __system("rm -r /data/dalvik-cache");
-                        __system("rm -r /cache/dalvik-cache");
-                        __system("rm -r /sd-ext/dalvik-cache");
-                        ui_print("Dalvik Cache wiped.\n");
-                    }
-                    ensure_path_unmounted("/data");
-
-                    ui_print("-- Dalvik Cache Wipe Complete!\n");
-                } else if (strcmp(value, "data") == 0 || strcmp(value, "/data") == 0 || strcmp(value, "factory") == 0 || strcmp(value, "factoryreset") == 0) {
-                    ui_print("-- Wiping Data Partition...\n");
-                    wipe_data(0);
-                    ui_print("-- Data Partition Wipe Complete!\n");
-                } else {
-                    LOGE("Error with wipe command value: '%s'\n", value);
-                    ret_val = 1;
-                }
-            } else if (strcmp(command, "backup") == 0) {
-                // Backup
-                char backup_path[PATH_MAX];
-
-                tok = strtok(value, " ");
-                strcpy(value1, tok);
-                tok = strtok(NULL, " ");
-                if (tok != NULL) {
-                    memset(value2, 0, sizeof(value2));
-                    strcpy(value2, tok);
-                    line_len = strlen(tok);
-                    if ((int)value2[line_len - 1] == 10 || (int)value2[line_len - 1] == 13) {
-                        if ((int)value2[line_len - 1] == 10 || (int)value2[line_len - 1] == 13)
-                            remove_nl = 2;
-                        else
-                            remove_nl = 1;
-                    } else
-                        remove_nl = 0;
-                    strncpy(value2, tok, line_len - remove_nl);
-                    ui_print("Backup folder set to '%s'\n", value2);
-                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%s", value2);
-                } else {
-                    time_t t = time(NULL);
-                    struct tm *tmp = localtime(&t);
-                    if (tmp == NULL)
-                    {
-                        struct timeval tp;
-                        gettimeofday(&tp, NULL);
-                        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
-                    }
-                    else
-                    {
-                        strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
-                    }
-                }
-
-                ui_print("Backup options are ignored in CWMR: '%s'\n", value1);
-                nandroid_backup(backup_path);
-                ui_print("Backup complete!\n");
-            } else if (strcmp(command, "restore") == 0) {
-                // Restore
-                tok = strtok(value, " ");
-                strcpy(value1, tok);
-                ui_print("Restoring '%s'\n", value1);
-                tok = strtok(NULL, " ");
-                if (tok != NULL) {
-                    ors_system = 0;
-                    ors_data = 0;
-                    ors_cache = 0;
-                    ors_boot = 0;
-                    ors_sdext = 0;
-
-                    memset(value2, 0, sizeof(value2));
-                    strcpy(value2, tok);
-                    ui_print("Setting restore options:\n");
-                    line_len = strlen(value2);
-                    for (i=0; i<line_len; i++) {
-                        if (value2[i] == 'S' || value2[i] == 's') {
-                            ors_system = 1;
-                            ui_print("System\n");
-                        } else if (value2[i] == 'D' || value2[i] == 'd') {
-                            ors_data = 1;
-                            ui_print("Data\n");
-                        } else if (value2[i] == 'C' || value2[i] == 'c') {
-                            ors_cache = 1;
-                            ui_print("Cache\n");
-                        } else if (value2[i] == 'R' || value2[i] == 'r') {
-                            ui_print("Option for recovery ignored in CWMR\n");
-                        } else if (value2[i] == '1') {
-                            ui_print("%s\n", "Option for special1 ignored in CWMR");
-                        } else if (value2[i] == '2') {
-                            ui_print("%s\n", "Option for special1 ignored in CWMR");
-                        } else if (value2[i] == '3') {
-                            ui_print("%s\n", "Option for special1 ignored in CWMR");
-                        } else if (value2[i] == 'B' || value2[i] == 'b') {
-                            ors_boot = 1;
-                            ui_print("Boot\n");
-                        } else if (value2[i] == 'A' || value2[i] == 'a') {
-                            ui_print("Option for android secure ignored in CWMR\n");
-                        } else if (value2[i] == 'E' || value2[i] == 'e') {
-                            ors_sdext = 1;
-                            ui_print("SD-Ext\n");
-                        } else if (value2[i] == 'M' || value2[i] == 'm') {
-                            ui_print("MD5 check skip option ignored in CWMR\n");
-                        }
-                    }
-                } else
-                    LOGI("No restore options set\n");
-                nandroid_restore(value1, ors_boot, ors_system, ors_data, ors_cache, ors_sdext, 0);
-                ui_print("Restore complete!\n");
-            } else if (strcmp(command, "mount") == 0) {
-                // Mount
-                if (value[0] != '/') {
-                    strcpy(mount, "/");
-                    strcat(mount, value);
-                } else
-                    strcpy(mount, value);
-                ensure_path_mounted(mount);
-                ui_print("Mounted '%s'\n", mount);
-            } else if (strcmp(command, "unmount") == 0 || strcmp(command, "umount") == 0) {
-                // Unmount
-                if (value[0] != '/') {
-                    strcpy(mount, "/");
-                    strcat(mount, value);
-                } else
-                    strcpy(mount, value);
-                ensure_path_unmounted(mount);
-                ui_print("Unmounted '%s'\n", mount);
-            } else if (strcmp(command, "set") == 0) {
-                // Set value
-                tok = strtok(value, " ");
-                strcpy(value1, tok);
-                tok = strtok(NULL, " ");
-                strcpy(value2, tok);
-                ui_print("Setting function disabled in CWMR: '%s' to '%s'\n", value1, value2);
-            } else if (strcmp(command, "mkdir") == 0) {
-                // Make directory (recursive)
-                ui_print("Recursive mkdir disabledin CWMR: '%s'\n", value);
-            } else if (strcmp(command, "reboot") == 0) {
-                // Reboot
-            } else if (strcmp(command, "cmd") == 0) {
-                if (cindex != 0) {
-                    __system(value);
-                } else {
-                    LOGE("No value given for cmd\n");
-                }
-            } else {
-                LOGE("Unrecognized script command: '%s'\n", command);
-                ret_val = 1;
-            }
-        }
-        fclose(fp);
-        ui_print("Done processing script file\n");
-    } else {
-        LOGE("Error opening script file '%s'\n");
-        return 1;
-    }
-    return ret_val;
-}
-
-// end of open recovery script file code
 
 static void
 setup_adbd() {
@@ -1060,6 +789,13 @@ setup_adbd() {
 
     // Trigger (re)start of adb daemon
     property_set("service.adb.root", "1");
+}
+
+// call a clean reboot
+void reboot_main_system(int cmd, int flags, char *arg) {
+    verify_root_and_recovery();
+    finish_recovery(NULL); // sync() in here
+    android_reboot(cmd, flags, arg);
 }
 
 int
@@ -1141,6 +877,7 @@ main(int argc, char **argv) {
     const char *update_package = NULL;
     int wipe_data = 0, wipe_cache = 0;
     int sideload = 0;
+    int headless = 0;
 
     LOGI("Checking arguments.\n");
     int arg;
@@ -1149,11 +886,16 @@ main(int argc, char **argv) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
-        case 'w':
+        case 'w': 
 #ifndef BOARD_RECOVERY_ALWAYS_WIPES
         wipe_data = wipe_cache = 1;
 #endif
         break;
+        case 'h':
+            ui_set_background(BACKGROUND_ICON_CID);
+            ui_show_text(0);
+            headless = 1;
+            break;
         case 'c': wipe_cache = 1; break;
         case 't': ui_show_text(1); break;
         case 'l': sideload = 1; break;
@@ -1171,7 +913,7 @@ main(int argc, char **argv) {
 
     if (!sehandle) {
         fprintf(stderr, "Warning: No file_contexts\n");
-        // ui_print("Warning:  No file_contexts\n");
+        ui_print("Warning:  No file_contexts\n");
     }
 
     LOGI("device_recovery_start()\n");
@@ -1218,7 +960,8 @@ main(int argc, char **argv) {
         if (status != INSTALL_SUCCESS) ui_print("Cache wipe failed.\n");
     } else if (sideload) {
         signature_check_enabled = 0;
-        ui_set_show_text(1);
+        if (!headless)
+          ui_set_show_text(1);
         if (0 == apply_from_adb()) {
             status = INSTALL_SUCCESS;
             ui_set_show_text(0);
@@ -1231,10 +974,11 @@ main(int argc, char **argv) {
         signature_check_enabled = 0;
         script_assert_enabled = 0;
         is_user_initiated_recovery = 1;
-        ui_set_show_text(1);
-        ui_set_background(BACKGROUND_ICON_CLOCKWORK);
-
-        if (check_for_script_file()) run_script_file();
+        if (!headless) {
+          ui_set_show_text(1);
+          ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+        }
+        
         if (extendedcommand_file_exists()) {
             LOGI("Running extendedcommand...\n");
             int ret;
@@ -1252,11 +996,14 @@ main(int argc, char **argv) {
 
     setup_adbd();
 
+    if (headless) {
+      headless_wait();
+    }
     if (status != INSTALL_SUCCESS && !is_user_initiated_recovery) {
         ui_set_show_text(1);
         ui_set_background(BACKGROUND_ICON_ERROR);
     }
-    if (status != INSTALL_SUCCESS || ui_text_visible()) {
+    else if (status != INSTALL_SUCCESS || ui_text_visible()) {
         prompt_and_wait();
     }
 

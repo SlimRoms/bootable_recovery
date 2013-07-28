@@ -985,7 +985,6 @@ bool mzExtractRecursive(const ZipArchive *pArchive,
     unsigned int i;
     bool seenMatch = false;
     int ok = true;
-    int extractCount = 0;
     for (i = 0; i < pArchive->numEntries; i++) {
         ZipEntry *pEntry = pArchive->pEntries + i;
         if (pEntry->fileNameLen < zipDirLen) {
@@ -1151,15 +1150,12 @@ bool mzExtractRecursive(const ZipArchive *pArchive,
                     break;
                 }
 
-                LOGV("Extracted file \"%s\"\n", targetFile);
-                ++extractCount;
+                LOGD("Extracted file \"%s\"\n", targetFile);
             }
         }
 
         if (callback != NULL) callback(targetFile, cookie);
     }
-
-    LOGD("Extracted %d file(s)\n", extractCount);
 
     free(helper.buf);
     free(zpath);

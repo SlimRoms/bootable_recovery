@@ -503,7 +503,7 @@ int dedupe_main(int argc, char** argv) {
             usage(argv);
             return 1;
         }
-
+        
         char blob_dir[PATH_MAX];
         realpath(argv[2], blob_dir);
         if (check_file(blob_dir)) {

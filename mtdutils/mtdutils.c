@@ -604,7 +604,7 @@ int cmd_mtd_restore_raw_partition(const char *partition_name, const char *filena
         printf("error opening %s", filename);
         return -1;
     }
-
+    
     MtdWriteContext* ctx = mtd_write_partition(mtd);
     if (ctx == NULL) {
         printf("error writing %s", partition_name);

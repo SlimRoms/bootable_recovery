@@ -65,7 +65,7 @@ int dump_image(char* partition_name, char* filename, dump_image_callback callbac
     int fd;
     int wrote;
     int len;
-
+    
     if (mtd_scan_partitions() <= 0)
         return die("error scanning partitions");
 
@@ -79,7 +79,7 @@ int dump_image(char* partition_name, char* filename, dump_image_callback callbac
 
     if (!strcmp(filename, "-")) {
         fd = fileno(stdout);
-    }
+    } 
     else {
         fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0666);
     }

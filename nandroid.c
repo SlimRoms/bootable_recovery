@@ -305,6 +305,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
         ui_print("Error while making a backup image of %s!\n", mount_point);
         return ret;
     }
+    ui_print("Backup of %s completed.\n", name);
     return 0;
 }
 
@@ -312,7 +313,7 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     Volume *vol = volume_for_path(root);
     // make sure the volume exists before attempting anything...
     if (vol == NULL || vol->fs_type == NULL)
-        return NULL;
+        return 0;
 
     // see if we need a raw backup (mtd)
     char tmp[PATH_MAX];
@@ -355,12 +356,13 @@ int nandroid_backup(const char* backup_path)
     if (is_data_media_volume_path(volume->mount_point))
         volume = volume_for_path("/data");
     int ret;
-    struct statfs s;
+    struct statfs sfs;
+    struct stat s;
     if (NULL != volume) {
-        if (0 != (ret = statfs(volume->mount_point, &s)))
+        if (0 != (ret = statfs(volume->mount_point, &sfs)))
             return print_and_error("Unable to stat backup path.\n");
-        uint64_t bavail = s.f_bavail;
-        uint64_t bsize = s.f_bsize;
+        uint64_t bavail = sfs.f_bavail;
+        uint64_t bsize = sfs.f_bsize;
         uint64_t sdcard_free = bavail * bsize;
         uint64_t sdcard_free_mb = sdcard_free / (uint64_t)(1024 * 1024);
         ui_print("SD Card space free: %lluMB\n", sdcard_free_mb);
@@ -437,7 +439,7 @@ int nandroid_backup(const char* backup_path)
     sprintf(tmp, "chmod -R 777 %s ; chmod -R u+r,u+w,g+r,g+w,o+r,o+w /sdcard/clockworkmod ; chmod u+x,g+x,o+x /sdcard/clockworkmod/backup ; chmod u+x,g+x,o+x /sdcard/clockworkmod/blobs", backup_path);
     __system(tmp);
     sync();
-    ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+    ui_set_background(BACKGROUND_ICON_NONE);
     ui_reset_progress();
     ui_print("\nBackup complete!\n");
     return 0;
@@ -596,7 +598,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         restore_handler = tar_extract_wrapper;
         strcpy(tmp, "/proc/self/fd/0");
     }
-    else if (0 != (ret = statfs(tmp, &file_info))) {
+    else if (0 != (ret = stat(tmp, &file_info))) {
         // can't find the backup, it may be the new backup format?
         // iterate through the backup types
         printf("couldn't find default\n");
@@ -604,19 +606,19 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         int i = 0;
         while ((filesystem = filesystems[i]) != NULL) {
             sprintf(tmp, "%s/%s.%s.img", backup_path, name, filesystem);
-            if (0 == (ret = statfs(tmp, &file_info))) {
+            if (0 == (ret = stat(tmp, &file_info))) {
                 backup_filesystem = filesystem;
                 restore_handler = unyaffs_wrapper;
                 break;
             }
             sprintf(tmp, "%s/%s.%s.tar", backup_path, name, filesystem);
-            if (0 == (ret = statfs(tmp, &file_info))) {
+            if (0 == (ret = stat(tmp, &file_info))) {
                 backup_filesystem = filesystem;
                 restore_handler = tar_extract_wrapper;
                 break;
             }
             sprintf(tmp, "%s/%s.%s.dup", backup_path, name, filesystem);
-            if (0 == (ret = statfs(tmp, &file_info))) {
+            if (0 == (ret = stat(tmp, &file_info))) {
                 backup_filesystem = filesystem;
                 restore_handler = dedupe_extract_wrapper;
                 break;
@@ -799,7 +801,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
         return ret;
 
     sync();
-    ui_set_background(BACKGROUND_ICON_CLOCKWORK);
+    ui_set_background(BACKGROUND_ICON_NONE);
     ui_reset_progress();
     ui_print("\nRestore complete!\n");
     return 0;
@@ -916,7 +918,7 @@ int nandroid_main(int argc, char** argv)
             return nandroid_usage();
         return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0);
     }
-
+    
     if (strcmp("dump", argv[1]) == 0)
     {
         if (argc != 3)
