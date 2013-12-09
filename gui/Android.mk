@@ -71,6 +71,32 @@ ifeq ($(TW_ROUND_SCREEN), true)
     LOCAL_CFLAGS += -DTW_ROUND_SCREEN
 endif
 
+ifeq ($(DEVICE_RESOLUTION),)
+ifneq ($(TARGET_SCREEN_WIDTH) $(TARGET_SCREEN_HEIGHT),$(space))
+
+resolutions := $(shell ls bootable/recovery/gui/devices)
+resolutions := $(shell echo -e $(subst $(space),'\n',$(resolutions)) | sort -rn)
+
+# find the appropriate size and set
+get_width = $(firstword $(subst x, ,$1))
+define check_and_set_resolution
+$(eval DEVICE_RESOLUTION := $(shell \
+  if [ -z "$(DEVICE_RESOLUTION)" ]; then
+    if [ $(call get_width,$(1)) -le $(TARGET_SCREEN_WIDTH) ]; then \
+      echo $(1); \
+      exit 0; \
+    fi;
+  fi;
+  echo $(DEVICE_RESOLUTION); ))
+endef
+$(foreach size,$(resolutions), $(call check_and_set_resolution,$(size)))
+else
+$(warning ***********************************************************************************************)
+$(warning * YOU SHOULD BE SLAPPED FOR NOT SPECIFYING THE SCREEN DIMENSION FOR BOOTANIMATION AND RECOVERY*)
+$(warning ***********************************************************************************************)
+$(error stop)
+endif
+endif
 LOCAL_C_INCLUDES += bionic external/stlport/stlport $(commands_recovery_local_path)/gui/devices/$(DEVICE_RESOLUTION)
 LOCAL_CFLAGS += -DTWRES=\"$(TWRES_PATH)\"
 
