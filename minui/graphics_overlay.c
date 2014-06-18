@@ -51,6 +51,7 @@
 
 #include "minui.h"
 
+#define MDP_V3_0_4 304
 #define MDP_V4_0 400
 
 #ifdef MSM_BSP
@@ -92,11 +93,17 @@ bool target_has_overlay(char *version)
             memcpy(str_ver, version + strlen("msmfb"), 3);
             str_ver[3] = '\0';
             mdp_version = atoi(str_ver);
-            if (mdp_version >= MDP_V4_0) {
+
+            // Normalize MDP version to ease comparison.
+            // This is needed only because
+            // MDP 3.0.3 reports value as 303 which
+            // is more than all the others
+            if (mdp_version < 100)
+                mdp_version *= 10;
+
+            if (mdp_version >= MDP_V4_0 || mdp_version == MDP_V3_0_4) {
                 overlay_supported = true;
             }
-        } else if (!strncmp(version, "mdssfb", strlen("mdssfb"))) {
-            overlay_supported = true;
         }
     }
 
