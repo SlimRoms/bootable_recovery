@@ -98,8 +98,6 @@ bool target_has_overlay(char *version)
             // This is needed only because
             // MDP 3.0.3 reports value as 303 which
             // is more than all the others
-            if (mdp_version < 100)
-                mdp_version *= 10;
 
             if (mdp_version >= MDP_V4_0 || mdp_version == MDP_V3_0_4) {
                 overlay_supported = true;
