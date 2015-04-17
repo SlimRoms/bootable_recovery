@@ -253,8 +253,9 @@ int OpenRecoveryScript::run_script_file(void) {
 						} else if ((value2[i] == 'C' || value2[i] == 'c') && Partition_List.find("/cache;") != string::npos) {
 							Restore_List += "/cache;";
 							gui_print("Cache\n");
-						} else if ((value2[i] == 'R' || value2[i] == 'r') && Partition_List.find("/recovery;") != string::npos) {
-							gui_print("Recovery -- Not allowed to restore recovery\n");
+						} else if ((value2[i] == 'R' || value2[i] == 'r') && Partition_List.find("/ramdisk;") != string::npos) {
+							Restore_List += "/ramdisk;";
+							gui_print("Ramdisk\n");
 						} else if (value2[i] == '1' && DataManager::GetIntValue(TW_RESTORE_SP1_VAR) > 0) {
 							gui_print("%s\n", "Special1 -- No Longer Supported...");
 						} else if (value2[i] == '2' && DataManager::GetIntValue(TW_RESTORE_SP2_VAR) > 0) {

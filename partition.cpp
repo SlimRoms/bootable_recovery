@@ -349,6 +349,11 @@ bool TWPartition::Process_Fstab_Line(string Line, bool Display_Error) {
 			Backup_Display_Name = Display_Name;
 			DataManager::SetValue("tw_boot_is_mountable", 1);
 			Can_Be_Backed_Up = true;
+		} else if (Mount_Point == "/ramdisk") {
+			Display_Name = "ramdisk";
+			Backup_Display_Name = Display_Name;
+			Wipe_Available_in_GUI = true;
+			Can_Be_Backed_Up = true;
 		}
 #ifdef TW_EXTERNAL_STORAGE_PATH
 		if (Mount_Point == EXPAND(TW_EXTERNAL_STORAGE_PATH)) {
