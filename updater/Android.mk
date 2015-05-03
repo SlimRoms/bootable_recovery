@@ -25,17 +25,20 @@ LOCAL_CFLAGS += -Wno-unused-parameter
 LOCAL_C_INCLUDES += system/extras/ext4_utils
 LOCAL_STATIC_LIBRARIES += \
     libext4_utils \
+    liblz4-static \
     libz
 ifneq ($(wildcard system/core/libmincrypt/rsa_e_3.c),)
 LOCAL_STATIC_LIBRARIES = \
     libext4_utils_static \
     libsparse_static \
+    liblz4-static \
     libz
 endif
 ifneq ($(wildcard system/core/include/mincrypt/sha256.h),)
 LOCAL_STATIC_LIBRARIES = \
     libext4_utils_static \
     libsparse_static \
+    liblz4-static \
     libz
 endif
 endif
