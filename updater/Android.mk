@@ -71,6 +71,10 @@ LOCAL_CFLAGS := \
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
     $(LOCAL_PATH)/include
 
+ifeq ($(BOARD_SUPPRESS_EMMC_WIPE),true)
+    LOCAL_CFLAGS += -DSUPPRESS_EMMC_WIPE
+endif
+
 LOCAL_STATIC_LIBRARIES := \
     $(updater_common_static_libraries)
 
