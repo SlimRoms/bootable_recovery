@@ -141,7 +141,7 @@ ifeq ($(TW_CUSTOM_THEME),)
         TWRP_THEME_LOC := $(commands_recovery_local_path)/gui/devices/320x320/res
         TWRP_COMMON_XML := cp -fr $(commands_recovery_local_path)/gui/devices/watch/res/* $(TARGET_RECOVERY_ROOT_OUT)$(TWRES_PATH)
     else ifeq ($(TW_THEME), landscape_mdpi)
-        TWRP_THEME_LOC := $(commands_recovery_local_path)/gui/devices/800x480/res
+        TWRP_THEME_LOC := $(commands_recovery_local_path)/gui/devices/1920x1200/res
         TWRP_COMMON_XML := cp -fr $(commands_recovery_local_path)/gui/devices/landscape/res/* $(TARGET_RECOVERY_ROOT_OUT)$(TWRES_PATH)
     else ifeq ($(TW_THEME), landscape_hdpi)
         TWRP_THEME_LOC := $(commands_recovery_local_path)/gui/devices/1920x1200/res
