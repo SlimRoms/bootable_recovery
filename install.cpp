@@ -253,7 +253,7 @@ try_update_binary(const char* path, ZipArchive* zip, bool* wipe_cache,
         } else if (strcmp(command, "log") == 0) {
             // Save the logging request from updater and write to
             // last_install later.
-            log_buffer.push_back(std::string(strtok(NULL, "\n")));
+            printf("%s\n", strtok(NULL, "\n"));
         } else {
             LOGE("unknown command [%s]\n", command);
         }
