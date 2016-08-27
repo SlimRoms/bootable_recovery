@@ -243,6 +243,8 @@ try_update_binary(const char* path, ZipArchive* zip, bool* wipe_cache,
             *wipe_cache = true;
         } else if (strcmp(command, "clear_display") == 0) {
             ui->SetBackground(RecoveryUI::NONE);
+        } else if (strcmp(command, "log") == 0) {
+            printf("%s\n", strtok(NULL, "\n"));
         } else if (strcmp(command, "enable_reboot") == 0) {
             // packages can explicitly request that they want the user
             // to be able to reboot during installation (useful for
