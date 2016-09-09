@@ -78,6 +78,7 @@ LOCAL_STATIC_LIBRARIES := \
     libminui \
     libpng \
     libfs_mgr \
+    libcrypto_utils_static \
     libcrypto_static \
     libbase \
     libcutils \
@@ -142,7 +143,7 @@ LOCAL_SRC_FILES := \
     asn1_decoder.cpp \
     verifier.cpp \
     ui.cpp
-LOCAL_STATIC_LIBRARIES := libcrypto_static
+LOCAL_STATIC_LIBRARIES := libcrypto_utils_static libcrypto_static
 include $(BUILD_STATIC_LIBRARY)
 
 include $(LOCAL_PATH)/minui/Android.mk \
