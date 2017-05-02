@@ -208,6 +208,14 @@ bool is_ro_debuggable() {
     return android::base::GetBoolProperty("ro.debuggable", false);
 }
 
+bool reboot(const std::string& command) {
+    std::string cmd = command;
+    if (android::base::GetBoolProperty("ro.boot.quiescent", false)) {
+        cmd += ",quiescent";
+    }
+    return android::base::SetProperty(ANDROID_RB_PROPERTY, cmd);
+}
+
 static void redirect_stdio(const char* filename) {
     int pipefd[2];
     if (pipe(pipefd) == -1) {
@@ -1147,7 +1155,7 @@ static Device::BuiltinAction prompt_and_wait(Device* device, int status) {
         {
           bool adb = (chosen_action == Device::APPLY_ADB_SIDELOAD);
           if (adb) {
-            status = apply_from_adb(ui, &should_wipe_cache, TEMPORARY_INSTALL_FILE);
+            status = apply_from_adb(&should_wipe_cache, TEMPORARY_INSTALL_FILE);
           } else {
             status = apply_from_sdcard(device, &should_wipe_cache);
           }
@@ -1448,12 +1456,18 @@ int main(int argc, char **argv) {
     printf("reason is [%s]\n", reason);
 
     Device* device = make_device();
-    ui = device->GetUI();
+    if (android::base::GetBoolProperty("ro.boot.quiescent", false)) {
+        printf("Quiescent recovery mode.\n");
+        ui = new StubRecoveryUI();
+    } else {
+        ui = device->GetUI();
 
-    if (!ui->Init(locale)) {
-      printf("Failed to initialize UI, use stub UI instead.");
-      ui = new StubRecoveryUI();
+        if (!ui->Init(locale)) {
+            printf("Failed to initialize UI, use stub UI instead.\n");
+            ui = new StubRecoveryUI();
+        }
     }
+
     // Set background string to "installing security update" for security update,
     // otherwise set it to "installing system update".
     ui->SetSystemUpdateText(security_update);
@@ -1525,7 +1539,7 @@ int main(int argc, char **argv) {
                     ui->Print("Retry attempt %d\n", retry_count);
 
                     // Reboot and retry the update
-                    if (!android::base::SetProperty(ANDROID_RB_PROPERTY, "reboot,recovery")) {
+                    if (!reboot("reboot,recovery")) {
                         ui->Print("Reboot failed\n");
                     } else {
                         while (true) {
@@ -1570,7 +1584,7 @@ int main(int argc, char **argv) {
         if (!sideload_auto_reboot) {
             ui->ShowText(true);
         }
-        status = apply_from_adb(ui, &should_wipe_cache, TEMPORARY_INSTALL_FILE);
+        status = apply_from_adb(&should_wipe_cache, TEMPORARY_INSTALL_FILE);
         if (status == INSTALL_SUCCESS && should_wipe_cache) {
             if (!wipe_cache(false, device)) {
                 status = INSTALL_ERROR;
@@ -1630,7 +1644,7 @@ int main(int argc, char **argv) {
 
         default:
             ui->Print("Rebooting...\n");
-            android::base::SetProperty(ANDROID_RB_PROPERTY, "reboot,");
+            reboot("reboot,");
             break;
     }
     while (true) {
