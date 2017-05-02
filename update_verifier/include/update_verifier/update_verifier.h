@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef _ADB_INSTALL_H
-#define _ADB_INSTALL_H
+#pragma once
 
-int apply_from_adb(bool* wipe_cache, const char* install_file);
+#include <string>
 
-#endif
+int update_verifier(int argc, char** argv);
+
+// Exposed for testing purpose.
+bool verify_image(const std::string& care_map_name);

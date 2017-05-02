@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef _ADB_INSTALL_H
-#define _ADB_INSTALL_H
+// See the comments in update_verifier.cpp.
 
-int apply_from_adb(bool* wipe_cache, const char* install_file);
+#include "update_verifier/update_verifier.h"
 
-#endif
+int main(int argc, char** argv) {
+  return update_verifier(argc, argv);
+}
