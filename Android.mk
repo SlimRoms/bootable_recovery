@@ -76,6 +76,7 @@ LOCAL_SRC_FILES := \
     rotate_logs.cpp \
     screen_ui.cpp \
     ui.cpp \
+    vr_ui.cpp \
     wear_ui.cpp \
     wear_touch.cpp \
 
@@ -104,6 +105,12 @@ ifneq ($(TARGET_RECOVERY_UI_MARGIN_WIDTH),)
 LOCAL_CFLAGS += -DRECOVERY_UI_MARGIN_WIDTH=$(TARGET_RECOVERY_UI_MARGIN_WIDTH)
 else
 LOCAL_CFLAGS += -DRECOVERY_UI_MARGIN_WIDTH=0
+endif
+
+ifneq ($(TARGET_RECOVERY_UI_VR_STEREO_OFFSET),)
+LOCAL_CFLAGS += -DRECOVERY_UI_VR_STEREO_OFFSET=$(TARGET_RECOVERY_UI_VR_STEREO_OFFSET)
+else
+LOCAL_CFLAGS += -DRECOVERY_UI_VR_STEREO_OFFSET=0
 endif
 
 LOCAL_C_INCLUDES += \
@@ -194,6 +201,17 @@ LOCAL_STATIC_LIBRARIES := \
     libcrypto \
     libbase
 LOCAL_CFLAGS := -Werror
+include $(BUILD_STATIC_LIBRARY)
+
+# vr headset default device
+# ===============================
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := vr_device.cpp
+
+# should match TARGET_RECOVERY_UI_LIB set in BoardConfig.mk
+LOCAL_MODULE := librecovery_ui_vr
+
 include $(BUILD_STATIC_LIBRARY)
 
 include \

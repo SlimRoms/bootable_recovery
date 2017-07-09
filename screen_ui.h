@@ -172,8 +172,9 @@ class ScreenRecoveryUI : public RecoveryUI {
     virtual int GetProgressBaseline();
     virtual int GetTextBaseline();
 
-    void DrawHorizontalRule(int* y);
-    void DrawTextLine(int x, int* y, const char* line, bool bold) const;
+    virtual void DrawHorizontalRule(int* y);
+    virtual void DrawHighlightBar(int x, int y, int width, int height) const;
+    virtual void DrawTextLine(int x, int* y, const char* line, bool bold) const;
     void DrawTextLines(int x, int* y, const char* const* lines) const;
 };
 
