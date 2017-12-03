@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-#include <unistd.h>
+#include "vr_ui.h"
 
-#include <gtest/gtest.h>
+#include <minui/minui.h>
 
-#include "fuse_sideload.h"
+VrRecoveryUI::VrRecoveryUI() : kStereoOffset(RECOVERY_UI_VR_STEREO_OFFSET) {}
 
-TEST(SideloadTest, fuse_device) {
-  ASSERT_EQ(0, access("/dev/fuse", R_OK | W_OK));
+bool VrRecoveryUI::InitTextParams() {
+  if (!ScreenRecoveryUI::InitTextParams()) return false;
+  int mid_divide = gr_fb_width() / 2;
+  text_cols_ = (mid_divide - kMarginWidth - kStereoOffset) / char_width_;
+  return true;
 }
 
-TEST(SideloadTest, run_fuse_sideload_wrong_parameters) {
-  provider_vtab vtab;
-  vtab.close = [](void*) {};
-
-  ASSERT_EQ(-1, run_fuse_sideload(&vtab, nullptr, 4096, 4095));
-  ASSERT_EQ(-1, run_fuse_sideload(&vtab, nullptr, 4096, (1 << 22) + 1));
-
-  // Too many blocks.
-  ASSERT_EQ(-1, run_fuse_sideload(&vtab, nullptr, ((1 << 18) + 1) * 4096, 4096));
+void VrRecoveryUI::DrawTextLine(int x, int* y, const char* line, bool bold) const {
+  int mid_divide = gr_fb_width() / 2;
+  gr_text(gr_sys_font(), x + kStereoOffset, *y, line, bold);
+  gr_text(gr_sys_font(), x - kStereoOffset + mid_divide, *y, line, bold);
+  *y += char_height_ + 4;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef _APPLYPATCH_IMGPATCH_H
-#define _APPLYPATCH_IMGPATCH_H
+#include "device.h"
+#include "vr_ui.h"
 
-#include <sys/types.h>
+Device* make_device() {
+    return new Device(new VrRecoveryUI);
+}
 
-#include <functional>
-
-using SinkFn = std::function<size_t(const unsigned char*, size_t)>;
-
-int ApplyImagePatch(const unsigned char* old_data, size_t old_size, const unsigned char* patch_data,
-                    size_t patch_size, SinkFn sink);
-
-#endif  // _APPLYPATCH_IMGPATCH_H

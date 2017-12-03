@@ -72,10 +72,16 @@ class ScreenRecoveryUI : public RecoveryUI {
     void SetColor(UIElement e);
 
   protected:
-    Icon currentIcon;
+    // The margin that we don't want to use for showing texts (e.g. round screen, or screen with
+    // rounded corners).
+    const int kMarginWidth;
+    const int kMarginHeight;
 
     // The scale factor from dp to pixels. 1.0 for mdpi, 4.0 for xxxhdpi.
-    float density_;
+    const float density_;
+
+    Icon currentIcon;
+
     // The layout to use.
     int layout_;
 
@@ -135,6 +141,7 @@ class ScreenRecoveryUI : public RecoveryUI {
 
     int char_width_;
     int char_height_;
+
     pthread_mutex_t updateMutex;
 
     virtual bool InitTextParams();
@@ -165,8 +172,9 @@ class ScreenRecoveryUI : public RecoveryUI {
     virtual int GetProgressBaseline();
     virtual int GetTextBaseline();
 
-    void DrawHorizontalRule(int* y);
-    void DrawTextLine(int x, int* y, const char* line, bool bold) const;
+    virtual void DrawHorizontalRule(int* y);
+    virtual void DrawHighlightBar(int x, int y, int width, int height) const;
+    virtual void DrawTextLine(int x, int* y, const char* line, bool bold) const;
     void DrawTextLines(int x, int* y, const char* const* lines) const;
 };
 

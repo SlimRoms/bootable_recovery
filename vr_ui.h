@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef _APPLYPATCH_IMGPATCH_H
-#define _APPLYPATCH_IMGPATCH_H
+#ifndef RECOVERY_VR_UI_H
+#define RECOVERY_VR_UI_H
 
-#include <sys/types.h>
+#include "screen_ui.h"
 
-#include <functional>
+class VrRecoveryUI : public ScreenRecoveryUI {
+  public:
+    VrRecoveryUI();
 
-using SinkFn = std::function<size_t(const unsigned char*, size_t)>;
+  protected:
+    // Pixel offsets to move drawing functions to visible range.
+    // Can vary per device depending on screen size and lens distortion.
+    const int kStereoOffset;
 
-int ApplyImagePatch(const unsigned char* old_data, size_t old_size, const unsigned char* patch_data,
-                    size_t patch_size, SinkFn sink);
+    bool InitTextParams() override;
 
-#endif  // _APPLYPATCH_IMGPATCH_H
+    void DrawTextLine(int x, int* y, const char* line, bool bold) const override;
+};
+
+#endif  // RECOVERY_VR_UI_H
